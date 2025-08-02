@@ -1,0 +1,58 @@
+H₁ / H₂ / H₃ 在 kpop-oprf 中的 TXT 思维导图
+│
+├─ H₁: Hash-to-Curve
+│   ├─ 定义位置
+│   │   └─ ciphersuites/*.sage
+│   │       ├─ ristretto255_sha512.sage  
+│   │       │     H₁(x) → Ristretto255.hash_to_point(
+│   │       │                      “HashToGroup-”∥CTX ∥ x)
+│   │       ├─ p256_sha256.sage  
+│   │       │     H₁(x) → GroupP256.hash_to_group(
+│   │       │                      “HashToGroup-”∥CTX ∥ x)
+│   │       └─ …（其它曲线同理）…
+│   ├─ 域分离标签
+│   │   └─ group_domain_separation_tag()  
+│   │       → “HashToGroup-” ∥ VERSION ∥ suite_id
+│   └─ 运行时调用
+│       ├─ OPRFClientContext.blind(x,…)
+│       │     input_element =
+│       │       suite.group.hash_to_group(
+│       │         x, group_domain_separation_tag())
+│       └─ OPRFServerContext.evaluate(x,…)
+│             同上 hash_to_group 调用
+│
+├─ H₃: Hash-to-Scalar
+│   ├─ 定义位置
+│   │   └─ ciphersuites/*.sage
+│   │       ├─ ristretto255_sha512.sage  
+│   │       │     H₃(x) → (SHA512(
+│   │       │              “HashToScalar-”∥CTX ∥ x) mod order)
+│   │       ├─ p256_sha256.sage  
+│   │       │     H₃(x) → (SHA256(
+│   │       │              “HashToScalar-”∥CTX ∥ x) mod order)
+│   │       └─ …（其它曲线同理）…
+│   ├─ 域分离标签
+│   │   └─ scalar_domain_separation_tag()  
+│   │       → “HashToScalar-” ∥ VERSION ∥ suite_id
+│   └─ 运行时调用
+│       ├─ POPRFClientContext.blind(x, info,…)
+│       │     context = “Info” ∥ len(info) ∥ info  
+│       │     t = suite.group.hash_to_scalar(
+│       │           context, scalar_domain_separation_tag())
+│       └─ POPRFServerContext.internal_evaluate
+│             同上 hash_to_scalar 调用
+│
+└─ H₂: Finalize
+    ├─ 构造输入
+    │   └─ finalize_input =
+    │         I2OSP(len(x),2) ∥ x
+    │       ∥ I2OSP(len(unblinded),2) ∥ unblinded
+    │       ∥ “Finalize”
+    ├─ 哈希选择 (suitehash)
+    │   ├─ SHA-512 → ristretto255, P-521  
+    │   ├─ SHA-384 → P-384  
+    │   ├─ SHA-256 → P-256  
+    │   └─ SHAKE-256 → Decaf448 (XOF)  
+    └─ 运行时调用
+        ├─ OPRFClientContext.finalize(...)
+        └─ VOPRFClientContext.finalize(...) / POPRFClientContext.finalize(...)
